@@ -1,2 +1,0 @@
-🔐 Logging in with user: newuser11@gmail.com
-✅ Login verified successfully.
