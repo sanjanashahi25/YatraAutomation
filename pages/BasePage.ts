@@ -1,98 +1,71 @@
 import { Page, expect } from '@playwright/test';
 
 export class BasePage {
-    readonly page: Page;
+    protected readonly page: Page;
 
     constructor(page: Page) {
         this.page = page;
     }
 
-    /**
-     * Navigate to a given URL and wait until page load is complete
-     */
-    async goto(url: string, options = { waitUntil: 'domcontentloaded' }) {
-        console.log(`🌍 Navigating to: ${url}`);
-        await this.page.goto(url, options);
-        await this.page.waitForLoadState('domcontentloaded');
-        console.log('🟢 Page loaded successfully');
+    async navigateTo(url: string, waitUntil: 'load' | 'domcontentloaded' | 'networkidle' = 'domcontentloaded'): Promise<void> {
+        console.log(` Navigating to → ${url}`);
+        await this.page.goto(url, { waitUntil });
+        await this.page.waitForLoadState(waitUntil);
+        console.log(` Navigation complete: ${url}`);
     }
 
-    /**
-     * Wait for specific seconds
-     */
-    async wait(seconds: number) {
-        console.log(`⏳ Waiting for ${seconds} second(s)...`);
+    async waitFor(seconds: number): Promise<void> {
+        console.log(` Waiting for ${seconds}s...`);
         await this.page.waitForTimeout(seconds * 1000);
     }
 
-    /**
-     * Wait for an element to be visible
-     */
-    async waitForVisibility(selector: string, timeout = 15000) {
-        console.log(`👀 Waiting for element: ${selector}`);
+    async waitForElementVisible(selector: string, timeout = 15000): Promise<void> {
+        console.log(` Waiting for visibility of element: ${selector}`);
         await this.page.locator(selector).waitFor({ state: 'visible', timeout });
     }
 
-    /**
-     * Click an element safely (after ensuring visibility)
-     */
-    async click(selector: string, timeout = 15000) {
+    async clickElement(selector: string, timeout = 15000): Promise<void> {
         const element = this.page.locator(selector);
         await element.waitFor({ state: 'visible', timeout });
         await element.click();
-        console.log(`🖱️ Clicked on element: ${selector}`);
+        console.log(` Clicked → ${selector}`);
     }
 
-    /**
-     * Type text into an input field
-     */
-    async type(selector: string, text: string, timeout = 15000) {
+    async enterText(selector: string, text: string, timeout = 15000): Promise<void> {
         const element = this.page.locator(selector);
         await element.waitFor({ state: 'visible', timeout });
         await element.fill(text);
-        console.log(`⌨️ Typed "${text}" into ${selector}`);
+        console.log(`Entered text "${text}" into → ${selector}`);
     }
 
-    /**
-     * Close popups, modals, or notification iframes (like Yatra homepage popup)
-     */
-    async closeInitialPopups() {
+    async dismissPopups(): Promise<void> {
+        console.log('🧹 Checking for potential popups or notifications...');
         try {
-            console.log('🧹 Checking for popups...');
-
-            // Generic popup close button (X icon)
             const closeButton = this.page.locator('img[alt="cross"], [aria-label="Close"], .close');
             if (await closeButton.count()) {
-                await closeButton.first().click({ timeout: 5000 }).catch(() => { });
-                console.log('🟢 Closed main popup');
+                await closeButton.first().click({ timeout: 3000 }).catch(() => { });
+                console.log(' Closed main popup');
             }
 
-            // Handle notification iframe (Yatra specific)
-            const iframeLocator = this.page.frameLocator('iframe[name^="notification-frame"]');
-            const closeInIframe = iframeLocator.getByRole('button', { name: /close/i });
-            if (await closeInIframe.count()) {
-                await closeInIframe.first().click().catch(() => { });
-                console.log('🟢 Closed iframe notification');
+            const iframe = this.page.frameLocator('iframe[name^="notification-frame"]');
+            const iframeCloseButton = iframe.getByRole('button', { name: /close/i });
+            if (await iframeCloseButton.count()) {
+                await iframeCloseButton.first().click().catch(() => { });
+                console.log('Closed notification iframe');
             }
-        } catch (err) {
-            console.log('⚠️ No popups found or already closed.');
+        } catch {
+            console.log('⚠️ No active popups detected or already dismissed.');
         }
     }
 
-    /**
-     * Verify page title contains text
-     */
-    async verifyTitleContains(text: string) {
-        await expect(this.page).toHaveTitle(new RegExp(text, 'i'));
-        console.log(`✅ Verified page title contains "${text}"`);
+    async verifyPageTitle(expectedText: string): Promise<void> {
+        await expect(this.page).toHaveTitle(new RegExp(expectedText, 'i'));
+        console.log(` Title verified: contains "${expectedText}"`);
     }
 
-    /**
-     * Capture screenshot (useful for Allure reporting)
-     */
-    async captureScreenshot(name: string) {
-        const path = `./screenshots/${name}-${Date.now()}.png`;
-        await this.page.screenshot({ path, fullPage: true });
-        console.log(`📸 Screenshot saved: ${path}`);
+    async takeScreenshot(name: string): Promise<void> {
+        const filePath = `screenshots/${name}-${Date.now()}.png`;
+        await this.page.screenshot({ path: filePath, fullPage: true });
+        console.log(`Screenshot captured: ${filePath}`);
     }
 }

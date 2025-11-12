@@ -1,31 +1,36 @@
-import { Page, expect } from '@playwright/test';
+import { Page } from '@playwright/test';
 
 export class AuthPage {
-    readonly page: Page;
+    protected readonly page: Page;
 
     constructor(page: Page) {
         this.page = page;
     }
 
-    async closeInitialPopups() {
-        // Close welcome or notification popups safely
+    async dismissPopups(): Promise<void> {
         try {
-            await this.page.getByAltText('cross').first().click({ timeout: 5000 });
-        } catch { }
-        try {
-            const iframe = await this.page
-                .frame({ name: /notification-frame/i });
-            if (iframe) {
-                await iframe.getByRole('button', { name: /close/i }).click();
+            const closeBtn = this.page.getByAltText('cross').first();
+            if (await closeBtn.count()) {
+                await closeBtn.click({ timeout: 3000 }).catch(() => { });
+                console.log('Closed main popup');
             }
-        } catch { }
+
+            const iframe = this.page.frame({ name: /notification-frame/i });
+            if (iframe) {
+                const iframeClose = (await iframe).getByRole('button', { name: /close/i });
+                await iframeClose.click().catch(() => { });
+                console.log(' Closed notification iframe');
+            }
+        } catch {
+            console.log(' No popups detected or already dismissed.');
+        }
     }
 
-    async login(email?: string, password?: string) {
+    async login(email?: string, password?: string): Promise<void> {
         const user = email || process.env.YATRA_EMAIL!;
         const pass = password || process.env.YATRA_PASSWORD!;
 
-        console.log(`🔐 Logging in with user: ${user}`);
+        console.log(`🔐 Logging in as: ${user}`);
 
         await this.page.getByText('Login / Signup').click();
         await this.page.getByPlaceholder('Email Id / Mobile Number').fill(user);
