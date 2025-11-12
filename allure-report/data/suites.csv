@@ -1,0 +1,2 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","3229","✅ Verify user can log in successfully","chromium","Wed Nov 12 11:32:10 IST 2025","passed","Wed Nov 12 11:32:13 IST 2025","Yatra Login Flow","login/login.spec.ts","",""
